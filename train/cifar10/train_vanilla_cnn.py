@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from datasets import CroppedCIFAR10
 from models.cnn import VanillaCNN
-
+from models.model_utils import get_n_params
 import torchvision.transforms as transforms
 import torch.optim as optim
 
@@ -53,7 +53,7 @@ def get_datasets(dataset_cfg: dict):
 def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
 
     model = VanillaCNN.build(DEVICE)
-
+    print(f"Num params: {get_n_params(model)}")
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=optim_cfg['lr'], momentum=0.9)
 
@@ -79,13 +79,9 @@ def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
             loss.backward()
             optimizer.step()
 
-            pbar.set_description("Loss: {:.5f}".format(loss.detach()))
-
-            # print statistics
+            pbar.set_description("Loss: {:.5f}".format(loss.item()))
             running_loss += loss.item()
-            if i % 2000 == 1999:  # print every 2000 mini-batches
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-                running_loss = 0.0
+        print("Loss after epoch {}: {:.4f}".format(epoch + 1, running_loss / len(trainloader)))
 
     print('Finished Training')
     return model
@@ -108,7 +104,7 @@ def eval(model: torch.nn.Module, testloader: torch.utils.data.DataLoader):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    acc = 100 * correct // total
+    acc = 100 * correct / total
     return acc
 
 
