@@ -8,6 +8,7 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 
 CFG_PATH = "./trn_cfg.yaml"
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def get_datasets(dataset_cfg: dict):
     transform = transforms.Compose(
@@ -50,7 +51,7 @@ def get_datasets(dataset_cfg: dict):
 
 def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
 
-    model = CrossAttentionCNN.build()
+    model = CrossAttentionCNN.build(DEVICE)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=optim_cfg['lr'], momentum=0.9)

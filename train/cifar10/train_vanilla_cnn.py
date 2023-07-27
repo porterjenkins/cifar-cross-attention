@@ -1,5 +1,6 @@
 import yaml
 import torch
+from tqdm import tqdm
 
 from datasets import CroppedCIFAR10
 from models.cnn import VanillaCNN
@@ -8,6 +9,7 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 
 CFG_PATH = "./trn_cfg.yaml"
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def get_datasets(dataset_cfg: dict):
     transform = transforms.Compose(
@@ -50,17 +52,23 @@ def get_datasets(dataset_cfg: dict):
 
 def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
 
-    model = VanillaCNN.build()
+    model = VanillaCNN.build(DEVICE)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=optim_cfg['lr'], momentum=0.9)
 
+
     for epoch in range(optim_cfg["num_epochs"]):  # loop over the dataset multiple times
 
         running_loss = 0.0
-        for i, data in enumerate(trainloader, 0):
+        pbar = tqdm(enumerate(trainloader, 0), total=len(trainloader))
+        for i, data in pbar:
             # get the inputs; data is a list of [inputs, labels]
             crops, imgs, labels = data
+
+            crops = crops.to(DEVICE)
+            imgs = imgs.to(DEVICE)
+            labels = labels.to(DEVICE)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -70,6 +78,8 @@ def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+
+            pbar.set_description("Loss: {:.5f}".format(loss.detach()))
 
             # print statistics
             running_loss += loss.item()
@@ -85,8 +95,12 @@ def eval(model: torch.nn.Module, testloader: torch.utils.data.DataLoader):
     total = 0
     # since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
-        for data in testloader:
+        for data in tqdm(testloader, total=len(testloader)):
             crops, imgs, labels = data
+            crops = crops.to(DEVICE)
+            imgs = imgs.to(DEVICE)
+            labels = labels.to(DEVICE)
+
             # calculate outputs by running images through the network
             outputs = model(crops)
             # the class with the highest energy is what we choose as prediction
@@ -107,3 +121,5 @@ if __name__ == "__main__":
 
     model = train(cfg['optimizer'], trainloader)
     acc = eval(model, testloader)
+
+    print("Accuracy: {:.4f}".format(acc))
