@@ -2,7 +2,7 @@ import yaml
 import torch
 
 from datasets import CroppedCIFAR10
-from models.cnn import VanillaCNN
+from models.attention_cnn import CrossAttentionCNN
 
 import torchvision.transforms as transforms
 import torch.optim as optim
@@ -50,7 +50,7 @@ def get_datasets(dataset_cfg: dict):
 
 def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
 
-    model = VanillaCNN.build()
+    model = CrossAttentionCNN.build()
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=optim_cfg['lr'], momentum=0.9)
@@ -66,7 +66,7 @@ def train(optim_cfg: dict, trainloader: torch.utils.data.DataLoader):
             optimizer.zero_grad()
 
             # forward + backward + optimize
-            outputs = model(crops)
+            outputs = model(crops, imgs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -88,7 +88,7 @@ def eval(model: torch.nn.Module, testloader: torch.utils.data.DataLoader):
         for data in testloader:
             crops, imgs, labels = data
             # calculate outputs by running images through the network
-            outputs = model(crops)
+            outputs = model(crops, imgs)
             # the class with the highest energy is what we choose as prediction
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
