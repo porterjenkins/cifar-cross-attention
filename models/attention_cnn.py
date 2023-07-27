@@ -38,30 +38,53 @@ class GlobalCNN(nn.Module):
         x = F.relu(self.fc1(x))
         return x / torch.norm(x, p=2, dim=-1).unsqueeze(-1) # l2 norm
 
+class TransformerMlp(nn.Module):
+    def __init__(self, dim, dropout_prob, fc_dims):
+        super(TransformerMlp, self).__init__()
+        self.net = nn.Sequential(
+            nn.Linear(dim, fc_dims),
+            nn.GELU(),
+            nn.Dropout(dropout_prob),
+            nn.Linear(fc_dims, dim),
+        )
+
+    def forward(self, x):
+        return self.net(x)
 
 class CrossAttentionCNN(nn.Module):
 
-    def __init__(self, backbone: nn.Module, global_cnn: nn.Module):
+    def __init__(self, backbone: nn.Module, global_cnn: nn.Module, mlp: nn.Module):
         super().__init__()
         self.backbone = backbone
         self.glob_cnn = global_cnn
         self.attn = nn.MultiheadAttention(embed_dim=32, num_heads=1, batch_first=True)
-        self.fc1 = nn.Linear(32, 10)
+        self.mlp = mlp
+
+        self.relu = nn.ReLU()
+        self.bn1 = nn.BatchNorm1d(32)
+        self.bn2 = nn.BatchNorm1d(32)
+
+        self.fc_out = nn.Linear(32, 10)
 
 
     def forward(self, crop, img):
         h_crop = self.backbone(crop).unsqueeze(1)
         h_glob = self.glob_cnn(img)
+        h_cross, attn_weights = self.attn(query=h_crop, key=h_glob, value=h_glob)
+        h = self.bn1((h_crop + h_cross).squeeze(1))
 
-        h, attn_weights = self.attn(query=h_crop, key=h_glob, value=h_glob)
-        y_hat = self.fc1(h.squeeze(1))
+        h2 = self.mlp(h)
+        h2 = self.bn2(h + h2)
 
-        return y_hat
+        y = self.fc_out(h2)
+
+        return y
 
 
     @classmethod
     def build(cls, device: torch.device):
         backbone = Backbone()
         glob_cnn = GlobalCNN()
-        model = CrossAttentionCNN(backbone, glob_cnn).to(device)
+        mlp = TransformerMlp(dim=32, dropout_prob=0.0, fc_dims=32)
+        model = CrossAttentionCNN(backbone, glob_cnn, mlp).to(device)
         return model
