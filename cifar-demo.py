@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as transforms
+from torchvision.datasets import CIFAR10
 
 
 import torch.nn as nn
@@ -18,12 +19,12 @@ transform = transforms.Compose(
 
 batch_size = 4
 
-trainset = CroppedCIFAR10(root='./data', train=True,
+trainset = CIFAR10(root='./data', train=True,
                                         download=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 
-testset = CroppedCIFAR10(root='./data', train=False,
+testset = CIFAR10(root='./data', train=False,
                                        download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)

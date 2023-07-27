@@ -42,13 +42,17 @@ class CroppedCIFAR10(CIFAR10):
 
         w, h = img.size
 
-        left = np.random.randint(0, w - self.crop_width)
-        right = left + self.crop_width
+        if self.crop_width < w or self.crop_height < h:
+            left = np.random.randint(0, w - self.crop_width)
+            right = left + self.crop_width
 
-        upper = np.random.randint(0, h - self.crop_height)
-        lower = upper + self.crop_height
+            upper = np.random.randint(0, h - self.crop_height)
+            lower = upper + self.crop_height
 
-        img_crop = img.crop([left, upper, right, lower])
+            img_crop = img.crop([left, upper, right, lower])
+
+        else:
+            img_crop = img
 
         if self.input_transform is not None:
             img_crop = self.input_transform(img_crop)
@@ -66,7 +70,7 @@ if __name__ == "__main__":
         ]
     )
     bs = 4
-    dta = CroppedCIFAR10(crop_width=8, crop_height=30, transform=transform)
+    dta = CroppedCIFAR10(root="./data/cifar10", crop_width=16, crop_height=16, transform=transform)
     dtaloader = torch.utils.data.DataLoader(dta, batch_size=bs, shuffle=False)
     dataiter = iter(dtaloader)
     crops, img, labels = next(dataiter)
@@ -75,3 +79,4 @@ if __name__ == "__main__":
     from img_utils import imshow
     print()
     imshow(torchvision.utils.make_grid(crops))
+    imshow(torchvision.utils.make_grid(img))

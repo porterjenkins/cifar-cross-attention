@@ -1,0 +1,10 @@
+dataset:
+  dir: /Users/porterjenkins/code/cifar-cross-attention/data/cifar10
+  batch_size: 4
+  test_batch_size: 2
+  crop_height: 16
+  crop_width: 16
+  num_workers: 0
+optimizer:
+  num_epochs: 2
+  lr: 0.001
