@@ -17,17 +17,17 @@ transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-batch_size = 4
+batch_size = 64
 
-trainset = CIFAR10(root='./data', train=True,
+trainset = CIFAR10(root='./data/cifar10', train=True,
                                         download=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
-                                          shuffle=True, num_workers=0)
+                                          shuffle=True, num_workers=8)
 
-testset = CIFAR10(root='./data', train=False,
+testset = CIFAR10(root='./data/cifar10', train=False,
                                        download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                         shuffle=False, num_workers=0)
+                                         shuffle=False, num_workers=8)
 
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -72,8 +72,9 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
-
-net = Net()
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device)
+net = Net().to(device)
 
 
 
@@ -81,12 +82,14 @@ net = Net()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
-for epoch in range(2):  # loop over the dataset multiple times
+for epoch in range(10):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
+        inputs = inputs.to(device)
+        labels = labels.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -99,8 +102,8 @@ for epoch in range(2):  # loop over the dataset multiple times
 
         # print statistics
         running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+        if i % 500 == 499:    # print every 500 mini-batches
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 500:.3f}')
             running_loss = 0.0
 
 print('Finished Training')
@@ -111,6 +114,8 @@ total = 0
 with torch.no_grad():
     for data in testloader:
         images, labels = data
+        images = images.to(device)
+        labels = labels.to(device)
         # calculate outputs by running images through the network
         outputs = net(images)
         # the class with the highest energy is what we choose as prediction
