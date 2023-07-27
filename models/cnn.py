@@ -22,5 +22,5 @@ class VanillaCNN(nn.Module):
         return x
 
     @classmethod
-    def build(cls):
-        return VanillaCNN()
+    def build(cls, device: torch.device):
+        return VanillaCNN().to(device)

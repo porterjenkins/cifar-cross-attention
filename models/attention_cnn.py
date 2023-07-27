@@ -60,8 +60,8 @@ class CrossAttentionCNN(nn.Module):
 
 
     @classmethod
-    def build(cls):
+    def build(cls, device: torch.device):
         backbone = Backbone()
         glob_cnn = GlobalCNN()
-        model = CrossAttentionCNN(backbone, glob_cnn)
+        model = CrossAttentionCNN(backbone, glob_cnn).to(device)
         return model
