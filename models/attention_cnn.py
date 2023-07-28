@@ -4,13 +4,13 @@ import torch.nn.functional as F
 
 
 class Backbone(nn.Module):
-    def __init__(self):
+    def __init__(self, dim: int):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=6, kernel_size=2)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=2)
         self.fc1 = nn.Linear(16 * 3 * 3, 64)
-        self.fc2 = nn.Linear(64, 32)
+        self.fc2 = nn.Linear(64, dim)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -23,19 +23,20 @@ class Backbone(nn.Module):
 
 class GlobalCNN(nn.Module):
 
-    def __init__(self):
+    def __init__(self, dim: int):
         super().__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(5 * 5, 32)
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(5 * 5, dim)
 
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = torch.flatten(x, 2) # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
+        x = self.relu(self.fc1(x))
         return x / torch.norm(x, p=2, dim=-1).unsqueeze(-1) # l2 norm
 
 class TransformerMlp(nn.Module):
@@ -53,18 +54,18 @@ class TransformerMlp(nn.Module):
 
 class CrossAttentionCNN(nn.Module):
 
-    def __init__(self, backbone: nn.Module, global_cnn: nn.Module, mlp: nn.Module):
+    def __init__(self, dim: int, backbone: nn.Module, global_cnn: nn.Module, mlp: nn.Module):
         super().__init__()
         self.backbone = backbone
         self.glob_cnn = global_cnn
-        self.attn = nn.MultiheadAttention(embed_dim=32, num_heads=1, batch_first=True)
+        self.attn = nn.MultiheadAttention(embed_dim=dim, num_heads=1, batch_first=True)
         self.mlp = mlp
 
         self.relu = nn.ReLU()
-        self.bn1 = nn.BatchNorm1d(32)
-        self.bn2 = nn.BatchNorm1d(32)
+        self.bn1 = nn.BatchNorm1d(dim)
+        self.bn2 = nn.BatchNorm1d(dim)
 
-        self.fc_out = nn.Linear(32, 10)
+        self.fc_out = nn.Linear(dim, 10)
 
 
     def forward(self, crop, img):
@@ -83,8 +84,9 @@ class CrossAttentionCNN(nn.Module):
 
     @classmethod
     def build(cls, device: torch.device):
-        backbone = Backbone()
-        glob_cnn = GlobalCNN()
-        mlp = TransformerMlp(dim=32, dropout_prob=0.0, fc_dims=32)
-        model = CrossAttentionCNN(backbone, glob_cnn, mlp).to(device)
+        dim = 64
+        backbone = Backbone(dim)
+        glob_cnn = GlobalCNN(dim)
+        mlp = TransformerMlp(dim=dim, dropout_prob=0.0, fc_dims=32)
+        model = CrossAttentionCNN(dim, backbone, glob_cnn, mlp).to(device)
         return model
