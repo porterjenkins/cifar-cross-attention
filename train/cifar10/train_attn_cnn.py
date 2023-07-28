@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 
 from models.model_utils import get_n_params
-from datasets import CroppedCIFAR10
+from datasets.cifar10 import CroppedCIFAR10
 from models.attention_cnn import CrossAttentionCNN
 
 import torchvision.transforms as transforms

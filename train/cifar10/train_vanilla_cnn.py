@@ -2,7 +2,7 @@ import yaml
 import torch
 from tqdm import tqdm
 
-from datasets import CroppedCIFAR10
+from datasets.cifar10 import CroppedCIFAR10
 from models.cnn import VanillaCNN
 from models.model_utils import get_n_params
 import torchvision.transforms as transforms
