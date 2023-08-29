@@ -116,7 +116,7 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
 
     trainloader, testloader = get_datasets(cfg['dataset'])
-
+    print(f"Device: {DEVICE}")
     model = train(cfg['optimizer'], trainloader)
     acc = eval(model, testloader)
     print("Accuracy: {:.4f}".format(acc))

@@ -21,6 +21,30 @@ class Backbone(nn.Module):
         return x / torch.norm(x, p=2, dim=1).unsqueeze(-1) # l2 norm
 
 
+class NaiveAggregator(nn.Module):
+
+    def __init__(self, dim):
+        super(NaiveAggregator, self).__init__()
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(5*5, dim)
+
+    def forward(self, x):
+        x = torch.flatten(x, 2)  # flatten all dimensions except batch
+        h = self.relu(self.fc1(x))
+        return h
+
+class SqueezeExciteAggregator(nn.Module):
+    def __init__(self, dim):
+        super(SqueezeExciteAggregator, self).__init__()
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(16, dim)
+
+    def forward(self, x: torch.Tensor):
+        avg_x = torch.mean(x, dim=[2, 3])
+        f_avg = self.relu(self.fc1(avg_x))
+        return f_avg.unsqueeze(1)
+
+
 class GlobalCNN(nn.Module):
 
     def __init__(self, dim: int):
@@ -29,15 +53,14 @@ class GlobalCNN(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.relu = nn.ReLU()
-        self.fc1 = nn.Linear(5 * 5, dim)
+        self.feature_map_aggregator = SqueezeExciteAggregator(dim)
 
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
-        x = torch.flatten(x, 2) # flatten all dimensions except batch
-        x = self.relu(self.fc1(x))
-        return x / torch.norm(x, p=2, dim=-1).unsqueeze(-1) # l2 norm
+        h = self.feature_map_aggregator(x)
+        return h / torch.norm(h, p=2, dim=-1).unsqueeze(-1) # l2 norm
 
 class TransformerMlp(nn.Module):
     def __init__(self, dim, dropout_prob, fc_dims):
